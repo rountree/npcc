@@ -254,9 +254,6 @@
 /* Comment this out to compile without SDL visualization support. */
 #define USE_SDL 1
 
-/* Define this to use threads, and how many threads to create */
-#define USE_PTHREADS_COUNT 4
-
 /* ----------------------------------------------------------------------- */
 
 #include <stdint.h>
@@ -265,10 +262,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#ifdef USE_PTHREADS_COUNT
-#include <pthread.h>
-#endif
 
 volatile uint64_t prngState[2];
 static inline uintptr_t getRandom()
@@ -330,10 +323,6 @@ struct Cell
 	/* Memory space for cell genome (genome is stored as four
 	 * bit instructions packed into machine size words) */
 	uintptr_t genome[POND_DEPTH_SYSWORDS];
-
-#ifdef USE_PTHREADS_COUNT
-	pthread_mutex_t lock;
-#endif
 };
 
 /* The pond is a 2D array of cells */
@@ -505,10 +494,6 @@ static void *run(void *targ)
 			y = getRandom() % POND_SIZE_Y;
 			pptr = &pond[x][y];
 
-#ifdef USE_PTHREADS_COUNT
-			pthread_mutex_lock(&(pptr->lock));
-#endif
-
 			pptr->ID = cellIdCounter;
 			pptr->parentID = 0;
 			pptr->lineage = cellIdCounter;
@@ -523,9 +508,6 @@ static void *run(void *targ)
 			++cellIdCounter;
 		
 			/* Update the random cell on SDL screen if viz is enabled */
-#ifdef USE_PTHREADS_COUNT
-			pthread_mutex_unlock(&(pptr->lock));
-#endif
 		}
 
 		/* Pick a random cell to execute */
@@ -700,17 +682,11 @@ static void *run(void *targ)
 					case 0xe: /* SHARE: Equalize energy between self and neighbor if allowed */
 						tmpptr = getNeighbor(x,y,facing);
 						if (accessAllowed(tmpptr,reg,1)) {
-#ifdef USE_PTHREADS_COUNT
-							pthread_mutex_lock(&(tmpptr->lock));
-#endif
 							if (tmpptr->generation > 2)
 								++statCounters.viableCellShares;
 							tmp = pptr->energy + tmpptr->energy;
 							tmpptr->energy = tmp / 2;
 							pptr->energy = tmp - tmpptr->energy;
-#ifdef USE_PTHREADS_COUNT
-							pthread_mutex_unlock(&(tmpptr->lock));
-#endif
 						}
 						break;
 					case 0xf: /* STOP: End execution */
@@ -737,9 +713,6 @@ static void *run(void *targ)
 		 * junk eventually. See the seeding code in the main loop above. */
 		if ((outputBuf[0] & 0xff) != 0xff) {
 			tmpptr = getNeighbor(x,y,facing);
-#ifdef USE_PTHREADS_COUNT
-			pthread_mutex_lock(&(tmpptr->lock));
-#endif
 			if ((tmpptr->energy)&&accessAllowed(tmpptr,reg,0)) {
 				/* Log it if we're replacing a viable cell */
 				if (tmpptr->generation > 2)
@@ -753,9 +726,6 @@ static void *run(void *targ)
 				for(i=0;i<POND_DEPTH_SYSWORDS;++i)
 					tmpptr->genome[i] = outputBuf[i];
 			}
-#ifdef USE_PTHREADS_COUNT
-			pthread_mutex_unlock(&(tmpptr->lock));
-#endif
 		}
 
 	}
@@ -793,22 +763,8 @@ int main(int ,char **)
 			pond[x][y].energy = 0;
 			for(i=0;i<POND_DEPTH_SYSWORDS;++i)
 				pond[x][y].genome[i] = ~((uintptr_t)0);
-#ifdef USE_PTHREADS_COUNT
-			pthread_mutex_init(&(pond[x][y].lock),0);
-#endif
 		}
 	}
-
-#ifdef USE_PTHREADS_COUNT
-	pthread_t threads[USE_PTHREADS_COUNT];
-	for(i=1;i<USE_PTHREADS_COUNT;++i)
-		pthread_create(&threads[i],0,run,(void *)i);
 	run((void *)0);
-	for(i=1;i<USE_PTHREADS_COUNT;++i)
-		pthread_join(threads[i],(void **)0);
-#else
-	run((void *)0);
-#endif
-
 	return 0;
 }
