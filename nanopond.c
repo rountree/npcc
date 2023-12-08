@@ -1,3 +1,34 @@
+#define _POSIX_C_SOURCE 2   // Required for getopt(3), >=2
+#include <unistd.h>         // getopt(3)
+#include <stdlib.h>         // EXIT_FAILURE, exit(3)
+#include <stdio.h>          // printf(3)
+void
+print_help(void){
+    printf("npcc:  A reimplementation of Adam Ierymenko's nanopond\n");
+    printf("\n");
+    printf("Options:\n");
+    printf("    -h  print this help message.\n");
+    printf("\n");
+}
+
+void
+parse_options( int argc, char **argv ){
+
+    int opt;
+	while ((opt = getopt(argc, argv, "h")) != -1) {
+		switch (opt) {
+			case 'h':
+				print_help();
+				exit(0);
+				break;
+            default:
+                printf("Unknown option '%c'\n", opt);
+                print_help();
+                exit(EXIT_FAILURE);
+        }
+    }
+}
+
 /* ----------------------------------------------------------------------- */
 /* Tunable parameters                                                      */
 /* ----------------------------------------------------------------------- */
@@ -529,8 +560,9 @@ static void *run(void *targ)
  * @param argc Number of args
  * @param argv Argument array
  */
-int main(int ,char **)
+int main(int argc,char **argv)
 {
+    parse_options( argc, argv );
 	uintptr_t i,x,y;
 
 	/* Seed and init the random number generator */
