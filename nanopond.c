@@ -306,17 +306,17 @@ struct Cell
 {
 	/* Globally unique cell ID */
 	uint64_t ID;
-	
+
 	/* ID of the cell's parent */
 	uint64_t parentID;
-	
+
 	/* Counter for original lineages -- equal to the cell ID of
 	 * the first cell in the line. */
 	uint64_t lineage;
-	
+
 	/* Generations start at 0 and are incremented from there. */
 	uintptr_t generation;
-	
+
 	/* Energy level of this cell */
 	uintptr_t energy;
 
@@ -335,16 +335,16 @@ volatile struct {
 	/* Counts for the number of times each instruction was
 	 * executed since the last report. */
 	double instructionExecutions[16];
-	
+
 	/* Number of cells executed since last report */
 	double cellExecutions;
-	
+
 	/* Number of viable cells replaced by other cells' offspring */
 	uintptr_t viableCellsReplaced;
-	
+
 	/* Number of viable cells KILLed */
 	uintptr_t viableCellsKilled;
-	
+
 	/* Number of successful SHARE operations */
 	uintptr_t viableCellShares;
 } statCounters;
@@ -352,14 +352,14 @@ volatile struct {
 static void doReport(const uint64_t clock)
 {
 	static uint64_t lastTotalViableReplicators = 0;
-	
+
 	uintptr_t x,y;
-	
+
 	uint64_t totalActiveCells = 0;
 	uint64_t totalEnergy = 0;
 	uint64_t totalViableReplicators = 0;
 	uintptr_t maxGeneration = 0;
-	
+
 	for(x=0;x<POND_SIZE_X;++x) {
 		for(y=0;y<POND_SIZE_Y;++y) {
 			struct Cell *const c = &pond[x][y];
@@ -373,9 +373,9 @@ static void doReport(const uint64_t clock)
 			}
 		}
 	}
-	
+
 	/* Look here to get the columns in the CSV output */
-	
+
 	/* The first five are here and are self-explanatory */
 	printf("%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",",
 		(uint64_t)clock,
@@ -387,7 +387,7 @@ static void doReport(const uint64_t clock)
 		(uint64_t)statCounters.viableCellsKilled,
 		(uint64_t)statCounters.viableCellShares
 		);
-	
+
 	/* The next 16 are the average frequencies of execution for each
 	 * instruction per cell execution. */
 	double totalMetabolism = 0.0;
@@ -395,18 +395,18 @@ static void doReport(const uint64_t clock)
 		totalMetabolism += statCounters.instructionExecutions[x];
 		printf(",%.4f",(statCounters.cellExecutions > 0.0) ? (statCounters.instructionExecutions[x] / statCounters.cellExecutions) : 0.0);
 	}
-	
+
 	/* The last column is the average metabolism per cell execution */
 	printf(",%.4f\n",(statCounters.cellExecutions > 0.0) ? (totalMetabolism / statCounters.cellExecutions) : 0.0);
 	fflush(stdout);
-	
+
 	if ((lastTotalViableReplicators > 0)&&(totalViableReplicators == 0))
 		fprintf(stderr,"[EVENT] Viable replicators have gone extinct. Please reserve a moment of silence.\n");
 	else if ((lastTotalViableReplicators == 0)&&(totalViableReplicators > 0))
 		fprintf(stderr,"[EVENT] Viable replicators have appeared!\n");
-	
+
 	lastTotalViableReplicators = totalViableReplicators;
-	
+
 	/* Reset per-report stat counters */
 	for(x=0;x<sizeof(statCounters);++x)
 		((uint8_t *)&statCounters)[x] = (uint8_t)0;
@@ -450,23 +450,23 @@ static void *run(void *targ)
 	/* Miscellaneous variables used in the loop */
 	uintptr_t currentWord,wordPtr,shiftPtr,inst,tmp;
 	struct Cell *pptr,*tmpptr;
-	
+
 	/* Virtual machine memory pointer register (which
 	 * exists in two parts... read the code below...) */
 	uintptr_t ptr_wordPtr;
 	uintptr_t ptr_shiftPtr;
-	
+
 	/* The main "register" */
 	uintptr_t reg;
-	
+
 	/* Which way is the cell facing? */
 	uintptr_t facing;
-	
+
 	/* Virtual machine loop/rep stack */
 	uintptr_t loopStack_wordPtr[POND_DEPTH];
 	uintptr_t loopStack_shiftPtr[POND_DEPTH];
 	uintptr_t loopStackPtr;
-	
+
 	/* If this is nonzero, we're skipping to matching REP */
 	/* It is incremented to track the depth of a nested set
 	 * of LOOP/REP pairs in false state. */
@@ -503,10 +503,10 @@ static void *run(void *targ)
 #else
 			pptr->energy += INFLOW_RATE_BASE;
 #endif /* INFLOW_RATE_VARIATION */
-			for(i=0;i<POND_DEPTH_SYSWORDS;++i) 
+			for(i=0;i<POND_DEPTH_SYSWORDS;++i)
 				pptr->genome[i] = getRandom();
 			++cellIdCounter;
-		
+
 			/* Update the random cell on SDL screen if viz is enabled */
 		}
 
@@ -570,10 +570,10 @@ static void *run(void *targ)
 					--falseLoopDepth;
 			} else {
 				/* If we're not in a false LOOP/REP, execute normally */
-				
+
 				/* Keep track of execution frequencies for each instruction */
 				statCounters.instructionExecutions[inst] += 1.0;
-				
+
 				switch(inst) {
 					case 0x0: /* ZERO: Zero VM state registers */
 						reg = 0;
@@ -694,7 +694,7 @@ static void *run(void *targ)
 						break;
 				}
 			}
-			
+
 			/* Advance the shift and word pointers, and loop around
 			 * to the beginning at the end of the genome. */
 			if ((shiftPtr += 4) >= SYSWORD_BITS) {
@@ -717,7 +717,7 @@ static void *run(void *targ)
 				/* Log it if we're replacing a viable cell */
 				if (tmpptr->generation > 2)
 					++statCounters.viableCellsReplaced;
-				
+
 				tmpptr->ID = ++cellIdCounter;
 				tmpptr->parentID = pptr->ID;
 				tmpptr->lineage = pptr->lineage; /* Lineage is copied in offspring */
@@ -751,7 +751,7 @@ int main(int ,char **)
 	/* Reset per-report stat counters */
 	for(x=0;x<sizeof(statCounters);++x)
 		((uint8_t *)&statCounters)[x] = (uint8_t)0;
-	
+
 	/* Clear the pond and initialize all genomes
 	 * to 0xffff... */
 	for(x=0;x<POND_SIZE_X;++x) {
