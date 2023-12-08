@@ -744,8 +744,8 @@ int main(int ,char **)
 	uintptr_t i,x,y;
 
 	/* Seed and init the random number generator */
-	prngState[0] = (uint64_t)time(NULL);
-	srand(time(NULL));
+	prngState[0] = 13;
+	srand(13);
 	prngState[1] = (uint64_t)rand();
 
 	/* Reset per-report stat counters */
