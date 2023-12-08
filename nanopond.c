@@ -260,6 +260,7 @@
 /* ----------------------------------------------------------------------- */
 
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -405,7 +406,7 @@ static void doReport(const uint64_t clock)
 	/* Look here to get the columns in the CSV output */
 	
 	/* The first five are here and are self-explanatory */
-	printf("%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu",
+	printf("%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",%"PRIu64",",
 		(uint64_t)clock,
 		(uint64_t)totalEnergy,
 		(uint64_t)totalActiveCells,
@@ -937,7 +938,7 @@ static void *run(void *targ)
  * @param argc Number of args
  * @param argv Argument array
  */
-int main(int argc,char **argv)
+int main(int ,char **)
 {
 	uintptr_t i,x,y;
 
